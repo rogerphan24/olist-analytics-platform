@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Customer records with whitespace and location casing standardized."
+
+    columns:
+      - name: customer_id
+        description: "Identifier used to join a customer record to an order."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: customer_unique_id
+        description: "Identifier for tracking the same customer across orders."
+        data_tests:
+          - not_null
