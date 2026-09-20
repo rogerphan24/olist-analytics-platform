@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_order_payments
+    description: "One row per payment sequence within an order."
+
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(order_id, '-', cast(payment_sequential as string))"
+
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+
+      - name: payment_sequential
+        data_tests:
+          - not_null
+
+      - name: payment_type
+        data_tests:
+          - not_null
+
+      - name: payment_installments
+        data_tests:
+          - not_null
+
+      - name: payment_value
+        data_tests:
+          - not_nullit add
