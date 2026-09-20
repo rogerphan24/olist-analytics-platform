@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_product_category_translation
+    description: "One row per Portuguese category present in the translation source."
+    columns:
+      - name: product_category_name
+        description: "Portuguese category key."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: product_category_name_english
+        description: "English category label."
+        data_tests:
+          - not_null

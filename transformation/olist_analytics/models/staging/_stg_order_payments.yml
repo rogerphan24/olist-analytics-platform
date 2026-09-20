@@ -32,4 +32,4 @@ models:
 
       - name: payment_value
         data_tests:
-          - not_nullit add
+          - not_null

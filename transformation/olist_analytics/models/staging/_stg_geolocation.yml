@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_geolocation
+    description: "One row per source geolocation observation; ZIP prefixes and full rows may repeat."
+    columns:
+      - name: geolocation_zip_code_prefix
+        description: "ZIP prefix, not a unique key; retain leading zeros."
+        data_tests:
+          - not_null
+
+      - name: geolocation_lat
+        description: "Latitude in decimal degrees."
+        data_tests:
+          - not_null
+
+      - name: geolocation_lng
+        description: "Longitude in decimal degrees."
+        data_tests:
+          - not_null
+
+      - name: geolocation_city
+        description: "Lowercase city; no accent removal or entity resolution."
+        data_tests:
+          - not_null
+
+      - name: geolocation_state
+        description: "Uppercase state abbreviation."
+        data_tests:
+          - not_null

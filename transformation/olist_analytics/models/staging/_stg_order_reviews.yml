@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_order_reviews
+    description: "One row per review and order pair; multiple reviews per order are retained."
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(review_id, '-', order_id)"
+    columns:
+      - name: review_id
+        description: "Review identifier; not globally unique."
+        data_tests:
+          - not_null
+
+      - name: order_id
+        description: "Reviewed order."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+
+      - name: review_score
+        description: "Integer score from 1 through 5."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+
+      - name: review_comment_title
+        description: "Optional title; source text preserved."
+
+      - name: review_comment_message
+        description: "Optional comment; source text preserved."
+
+      - name: review_creation_date
+        description: "Recorded creation datetime; timezone unspecified."
+        data_tests:
+          - not_null
+
+      - name: review_answer_timestamp
+        description: "Recorded answer datetime; timezone unspecified."
+        data_tests:
+          - not_null

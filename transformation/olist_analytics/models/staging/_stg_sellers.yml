@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg_sellers
+    description: "One row per seller."
+    columns:
+      - name: seller_id
+        description: "Seller identifier."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: seller_zip_code_prefix
+        description: "ZIP prefix stored as text to preserve leading zeros."
+        data_tests:
+          - not_null
+
+      - name: seller_city
+        description: "Lowercase city, with accents retained."
+        data_tests:
+          - not_null
+
+      - name: seller_state
+        description: "Uppercase state abbreviation."
+        data_tests:
+          - not_null
