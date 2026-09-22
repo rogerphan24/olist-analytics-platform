@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: dim_products
+    description: "One row per product, enriched with English category translations."
+
+    columns:
+      - name: product_id
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+
+      - name: category_translation_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - missing_category
+                  - unmapped_category
+                  - translated
+                  
