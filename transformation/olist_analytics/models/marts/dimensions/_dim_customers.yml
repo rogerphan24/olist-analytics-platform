@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: "One row per customer_id; preserves source-record location. Count distinct customer_unique_id for distinct customers."
+    columns:
+      - name: customer_id
+        description: "Source customer-record key used by orders; dimension primary key."
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: customer_unique_id
+        description: "Person-level source identifier; intentionally not unique in this dimension."
+        data_tests:
+          - not_null
+      - name: customer_zip_code_prefix
+        description: "Source-record ZIP prefix, kept as text with leading zeros."
+        data_tests:
+          - not_null
+      - name: customer_city
+        description: "City recorded against this customer_id."
+        data_tests:
+          - not_null
+      - name: customer_state
+        description: "State recorded against this customer_id."
+        data_tests:
+          - not_null

@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "One row per calendar date, covering full years across order, shipping deadline, and review dates. Source outliers are retained."
+
+    columns:
+      - name: date_key
+        data_tests:
+          - not_null
+          - unique
+
+      - name: calendar_date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: calendar_year
+        data_tests:
+          - not_null
+
+      - name: calendar_quarter
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+
+      - name: month_number
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                quote: false
+
+      - name: day_of_week_number
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+                quote: false
+
+      - name: is_weekend
+        data_tests:
+          - not_null
