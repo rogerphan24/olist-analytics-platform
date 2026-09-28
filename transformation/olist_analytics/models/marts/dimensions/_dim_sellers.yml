@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: dim_sellers
+    description: "One row per seller with cleaned location attributes."
+
+    columns:
+      - name: seller_id
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_sellers')
+                field: seller_id
+
+      - name: seller_zip_code_prefix
+        data_tests:
+          - not_null
+
+      - name: seller_city
+        data_tests:
+          - not_null
+
+      - name: seller_state
+        data_tests:
+          - not_null
