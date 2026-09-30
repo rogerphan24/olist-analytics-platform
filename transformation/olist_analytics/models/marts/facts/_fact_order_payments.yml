@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: fact_order_payments
+    description: "One row per order/payment sequence; amounts are preserved without installment multiplication."
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(order_id, '-', cast(payment_sequential as string))"
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fact_orders')
+                field: order_id
+      - name: payment_sequential
+        data_tests:
+          - not_null
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: purchase_date_key
+        description: "Associated order purchase date, not a payment or review event date."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: payment_type
+        data_tests:
+          - not_null
+      - name: payment_installments
+        data_tests:
+          - not_null
+      - name: payment_value
+        data_tests:
+          - not_null
+      - name: payment_record_count
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1]
+                quote: false

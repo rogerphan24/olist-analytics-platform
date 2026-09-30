@@ -13,6 +13,10 @@ models:
       - name: order_id
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('fact_orders')
+                field: order_id
 
       - name: order_item_id
         data_tests:

@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: fact_order_reviews
+    description: "One row per review/order pair; text is optional and no product-level attribution is inferred."
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(review_id, '-', order_id)"
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fact_orders')
+                field: order_id
+      - name: review_id
+        data_tests:
+          - not_null
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: purchase_date_key
+        description: "Associated order purchase date, not a payment or review event date."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: review_creation_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: review_answer_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: review_score
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+      - name: review_creation_date
+        data_tests:
+          - not_null
+      - name: review_answer_timestamp
+        data_tests:
+          - not_null
+      - name: review_count
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1]
+                quote: false
