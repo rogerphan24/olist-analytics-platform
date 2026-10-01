@@ -1,0 +1,67 @@
+version: 2
+
+models:
+  - name: mart_daily_sales
+    description: >
+      Daily sales metrics grouped by order purchase date.
+      Includes dates with orders only. Delivered metrics use
+      the order status recorded in the available dataset.
+
+    columns:
+      - name: purchase_date_key
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+      - name: purchase_date
+        data_tests:
+          - not_null
+          - unique
+
+      - name: orders_placed
+        data_tests:
+          - not_null
+
+      - name: delivered_orders
+        data_tests:
+          - not_null
+
+      - name: canceled_orders
+        data_tests:
+          - not_null
+
+      - name: unavailable_orders
+        data_tests:
+          - not_null
+
+      - name: delivered_orders_with_total_value
+        data_tests:
+          - not_null
+
+      - name: delivered_item_quantity
+        data_tests:
+          - not_null
+
+      - name: purchasing_customers
+        data_tests:
+          - not_null
+
+      - name: delivered_purchasing_customers
+        data_tests:
+          - not_null
+
+      - name: delivered_orders_missing_merchandise_value
+        data_tests:
+          - not_null
+
+      - name: delivered_orders_missing_freight_value
+        data_tests:
+          - not_null
+
+      - name: delivered_orders_missing_total_value
+        data_tests:
+          - not_null
