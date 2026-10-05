@@ -34,3 +34,14 @@ standalone_admin_password.txt
 .idea/
 .DS_Store
 Thumbs.db
+
+# Airflow runtime files
+/orchestration/airflow/logs/
+/orchestration/airflow/**/__pycache__/
+/orchestration/airflow/**/*.pyc
+
+# Local Airflow configuration and credentials
+/orchestration/airflow/.env
+/orchestration/airflow/.env.*
+!/orchestration/airflow/.env.example
+/orchestration/airflow/secrets/
