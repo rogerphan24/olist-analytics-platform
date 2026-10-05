@@ -546,3 +546,31 @@ One row per purchase date.
   customer counts; recalculate those from order-level data.
 - Introduce payment, delivery, review, and product/seller reporting marts
   separately, using their documented grains and populations.
+
+## 11. Implemented reporting layer
+
+| Metric group | Primary mart |
+|---|---|
+| Orders/sales, merchandise AOV, item price, freight share, distinct products/sellers | mart_daily_sales |
+| Product sales | mart_product_sales_daily |
+| Seller sales | mart_seller_sales_daily |
+| Category sales and category-level distinct order counts | mart_category_sales_daily |
+| Delivery measures and date coverage | mart_delivery_daily |
+| Payment measures by purchase date/status/type | mart_payments_daily |
+| Review measures by purchase date/status | mart_reviews_daily |
+| Arbitrary-period customer inputs | mart_customer_daily |
+| Customer measures for day/month/year/full observed dataset | mart_customer_periods |
+| Missing items/payments and complete-case payment reconciliation | mart_order_quality_daily |
+
+- Select exactly one period_type in mart_customer_periods. Month/year rows use
+  calendar boundaries but can represent partially observed periods. The dataset
+  period is available historical coverage, not lifetime history.
+- Payment-method shares are within purchase date and order status. Recompute
+  from summed values when combining dates or statuses; never sum stored shares.
+- For orders with payment records across methods, use mart_order_quality_daily.
+  Do not sum distinct order counts from payment-type groups.
+- NULL payment types and missing/unmapped source categories remain explicit groups.
+- Key duplication, orphan keys, required dates, source reconciliation and ratio
+  correctness are dbt test assertions rather than extra business metric tables.
+- See transformation/olist_analytics/models/marts/README.md for grains,
+  aggregation caveats and the explicit mart-only build command.

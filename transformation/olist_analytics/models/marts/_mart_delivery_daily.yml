@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: mart_delivery_daily
+    description: >
+      Delivery outcomes for delivered orders, grouped by purchase date.
+      Missing and negative delivery durations are reported separately.
+
+    columns:
+      - name: purchase_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+      - name: purchase_date
+        data_tests: [not_null]
+
+      - name: delivered_orders
+        data_tests: [not_null]
+
+      - name: orders_with_valid_delivery_duration
+        data_tests: [not_null]
+
+      - name: orders_missing_delivery_duration
+        data_tests: [not_null]
+
+      - name: orders_with_negative_delivery_duration
+        data_tests: [not_null]
+
+      - name: orders_with_known_punctuality
+        data_tests: [not_null]
+
+      - name: orders_missing_punctuality
+        data_tests: [not_null]
+
+      - name: on_time_delivered_orders
+        data_tests: [not_null]
+
+      - name: late_delivered_orders
+        data_tests: [not_null]
+
+      - name: orders_with_known_delivery_delay
+        data_tests: [not_null]
+
+      - name: orders_with_positive_delivery_delay
+        data_tests: [not_null]

@@ -1,0 +1,632 @@
+{
+  "version": 2,
+  "models": [
+    {
+      "name": "mart_payments_daily",
+      "description": "Purchase date/status/payment type. NULL payment types remain explicit. Amounts are recorded payments, not settlement; shares are within date/status.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "purchase_date_key",
+                "order_status",
+                "payment_type"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "payment_record_count > 0",
+                "orders_with_payment_records between 1 and payment_record_count",
+                "payments_missing_value between 0 and payment_record_count"
+              ]
+            }
+          }
+        },
+        {
+          "mart_ratios": {
+            "arguments": {
+              "ratios": {
+                "average_credit_card_installments": [
+                  "total_credit_card_installments",
+                  "credit_card_records_with_valid_installments"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "purchase_date_key",
+          "data_tests": [
+            "not_null",
+            {
+              "relationships": {
+                "arguments": {
+                  "to": "ref('dim_date')",
+                  "field": "date_key"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "purchase_date",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "order_status",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "payment_record_count",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_with_payment_records",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "payments_missing_value",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "credit_card_records_with_valid_installments",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "credit_card_records_with_invalid_installments",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mart_order_quality_daily",
+      "description": "Purchase date/status. Payment totals are compared only for orders with complete payment amounts and a known order total. Difference tolerance BRL 0.01.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "purchase_date_key",
+                "order_status"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "orders_with_payment_records + orders_without_payment_records = orders_placed",
+                "reconciliation_eligible_orders + reconciliation_excluded_orders = orders_placed",
+                "orders_with_payment_difference between 0 and reconciliation_eligible_orders"
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "purchase_date_key",
+          "data_tests": [
+            "not_null",
+            {
+              "relationships": {
+                "arguments": {
+                  "to": "ref('dim_date')",
+                  "field": "date_key"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "order_status",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_placed",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_without_items",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_without_payment_records",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_with_payment_records",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_with_missing_payment_values",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_missing_order_total",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "reconciliation_eligible_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "reconciliation_excluded_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_with_payment_difference",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mart_reviews_daily",
+      "description": "Purchase date/status. Review-record-weighted scores; review coverage uses distinct reviewed orders and all orders in the same cohort.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "purchase_date_key",
+                "order_status"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "reviewed_orders between 0 and orders_placed",
+                "review_record_count >= reviewed_orders",
+                "valid_score_records + invalid_score_records = review_record_count",
+                "low_score_reviews + high_score_reviews <= valid_score_records",
+                "written_reviews between 0 and review_record_count"
+              ]
+            }
+          }
+        },
+        {
+          "mart_ratios": {
+            "arguments": {
+              "ratios": {
+                "order_review_coverage": [
+                  "reviewed_orders",
+                  "orders_placed"
+                ],
+                "average_review_score": [
+                  "total_review_score",
+                  "valid_score_records"
+                ],
+                "low_score_review_share": [
+                  "low_score_reviews",
+                  "valid_score_records"
+                ],
+                "high_score_review_share": [
+                  "high_score_reviews",
+                  "valid_score_records"
+                ],
+                "written_review_share": [
+                  "written_reviews",
+                  "review_record_count"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "purchase_date_key",
+          "data_tests": [
+            "not_null",
+            {
+              "relationships": {
+                "arguments": {
+                  "to": "ref('dim_date')",
+                  "field": "date_key"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "purchase_date",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "order_status",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_placed",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "reviewed_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "review_record_count",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "valid_score_records",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "low_score_reviews",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "high_score_reviews",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "written_reviews",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "invalid_score_records",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mart_customer_daily",
+      "description": "One person/purchase date. Use this grain to recompute distinct and repeat customers for arbitrary date ranges. First-observed date uses the entire available delivered-order history.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "purchase_date_key",
+                "customer_unique_id"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "orders_placed > 0",
+                "delivered_orders between 0 and orders_placed",
+                "delivered_orders_with_total_value between 0 and delivered_orders",
+                "delivered_orders = 0 or first_observed_delivered_purchase_date <= purchase_date"
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "purchase_date_key",
+          "data_tests": [
+            "not_null",
+            {
+              "relationships": {
+                "arguments": {
+                  "to": "ref('dim_date')",
+                  "field": "date_key"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "purchase_date",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "customer_unique_id",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_placed",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_orders_with_total_value",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mart_customer_periods",
+      "description": "Period type/start. Select ONE period type. Month/year boundaries are calendar periods, potentially partially covered by the dataset; dataset is the observed full history, not true lifetime.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "period_type",
+                "period_start"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "period_type in ('day', 'month', 'year', 'dataset')",
+                "period_start <= period_end",
+                "repeat_delivered_purchasing_customers between 0 and delivered_purchasing_customers",
+                "first_observed_delivered_purchasing_customers between 0 and delivered_purchasing_customers",
+                "delivered_purchasing_customers <= purchasing_customers"
+              ]
+            }
+          }
+        },
+        {
+          "mart_ratios": {
+            "arguments": {
+              "ratios": {
+                "delivered_orders_per_purchasing_customer": [
+                  "delivered_orders",
+                  "delivered_purchasing_customers"
+                ],
+                "repeat_delivered_purchasing_customer_rate": [
+                  "repeat_delivered_purchasing_customers",
+                  "delivered_purchasing_customers"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "period_type",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "period_start",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "period_end",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "orders_placed",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "purchasing_customers",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_purchasing_customers",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "repeat_delivered_purchasing_customers",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "first_observed_delivered_purchasing_customers",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mart_category_sales_daily",
+      "description": "Purchase date/source category/translation status. Missing and unmapped categories retained. Distinct order/product/seller counts cannot be summed across categories.",
+      "data_tests": [
+        {
+          "mart_grain": {
+            "arguments": {
+              "keys": [
+                "purchase_date_key",
+                "product_category_name",
+                "category_translation_status"
+              ]
+            }
+          }
+        },
+        {
+          "mart_rules": {
+            "arguments": {
+              "rules": [
+                "delivered_orders between 1 and delivered_item_quantity",
+                "products_sold between 1 and delivered_item_quantity",
+                "selling_sellers between 1 and delivered_item_quantity",
+                "category_translation_status in ('missing_category', 'unmapped_category', 'translated')",
+                "item_quantity_with_known_price + items_missing_price = delivered_item_quantity"
+              ]
+            }
+          }
+        },
+        {
+          "mart_ratios": {
+            "arguments": {
+              "ratios": {
+                "average_delivered_item_price": [
+                  "delivered_merchandise_value",
+                  "item_quantity_with_known_price"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "name": "purchase_date_key",
+          "data_tests": [
+            "not_null",
+            {
+              "relationships": {
+                "arguments": {
+                  "to": "ref('dim_date')",
+                  "field": "date_key"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "purchase_date",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "category_translation_status",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_orders",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "products_sold",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "selling_sellers",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "delivered_item_quantity",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "item_quantity_with_known_price",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "items_missing_price",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "items_missing_freight_value",
+          "data_tests": [
+            "not_null"
+          ]
+        },
+        {
+          "name": "items_missing_total_value",
+          "data_tests": [
+            "not_null"
+          ]
+        }
+      ]
+    }
+  ]
+}

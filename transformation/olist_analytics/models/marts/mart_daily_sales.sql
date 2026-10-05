@@ -22,6 +22,15 @@ daily_totals as (
     select
         o.purchase_date_key,
 
+        countif(o.order_status = 'delivered' and o.merchandise_value is not null)
+            as delivered_orders_with_merchandise_value,
+        sum(if(o.order_status = 'delivered' and o.freight_value is not null
+            and o.order_total_value is not null, o.freight_value, null))
+            as freight_value_for_share,
+        sum(if(o.order_status = 'delivered' and o.freight_value is not null
+            and o.order_total_value is not null, o.order_total_value, null))
+            as order_value_for_freight_share,
+
         count(*) as orders_placed,
         countif(o.order_status = 'delivered') as delivered_orders,
         countif(o.order_status = 'canceled') as canceled_orders,
@@ -87,6 +96,18 @@ daily_totals as (
 
     group by o.purchase_date_key
 
+),
+
+daily_items as (
+    select purchase_date_key,
+        count(distinct product_id) as products_sold,
+        count(distinct seller_id) as selling_sellers,
+        sum(item_price) as known_item_price_total,
+        sum(if(item_price is not null, item_quantity, 0))
+            as item_quantity_with_known_price
+    from {{ ref('fact_order_items') }}
+    where order_status = 'delivered'
+    group by purchase_date_key
 )
 
 select
@@ -98,6 +119,21 @@ select
     d.month_start_date,
     d.day_name,
     d.is_weekend,
+
+    t.delivered_orders_with_merchandise_value,
+    safe_divide(t.delivered_merchandise_value,
+        t.delivered_orders_with_merchandise_value)
+        as average_delivered_merchandise_value_per_order,
+    t.freight_value_for_share,
+    t.order_value_for_freight_share,
+    safe_divide(t.freight_value_for_share, t.order_value_for_freight_share)
+        as freight_share_of_delivered_order_value,
+    coalesce(i.products_sold, 0) as products_sold,
+    coalesce(i.selling_sellers, 0) as selling_sellers,
+    i.known_item_price_total,
+    coalesce(i.item_quantity_with_known_price, 0) as item_quantity_with_known_price,
+    safe_divide(i.known_item_price_total, i.item_quantity_with_known_price)
+        as average_delivered_item_price,
 
     t.orders_placed,
     t.delivered_orders,
@@ -145,6 +181,9 @@ select
     ) as delivered_order_total_coverage
 
 from daily_totals as t
+
+left join daily_items as i
+    on t.purchase_date_key = i.purchase_date_key
 
 left join {{ ref('dim_date') }} as d
     on t.purchase_date_key = d.date_key
