@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: mart_product_sales_daily
+    description: >
+      Delivered product sales at one row per purchase date and product.
+      Order counts are not additive across products.
+
+    columns:
+      - name: purchase_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+      - name: purchase_date
+        data_tests:
+          - not_null
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+
+      - name: delivered_orders
+        data_tests:
+          - not_null
+
+      - name: delivered_item_quantity
+        data_tests:
+          - not_null
+
+      - name: item_quantity_with_known_price
+        data_tests:
+          - not_null
+
+      - name: items_missing_price
+        data_tests:
+          - not_null
+
+      - name: items_missing_freight_value
+        data_tests:
+          - not_null
+
+      - name: items_missing_total_value
+        data_tests:
+          - not_null
