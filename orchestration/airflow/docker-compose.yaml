@@ -50,7 +50,9 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.1}
-  # build: .
+  build: 
+    context: .
+    dockerfile: Dockerfile
   env_file:
     - ${ENV_FILE_PATH:-.env}
   environment:
@@ -181,6 +183,28 @@ services:
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/secrets/google-adc.json
+      DBT_PROJECT_DIR: /opt/dbt/project
+      DBT_PROFILES_DIR: /opt/airflow/config/dbt
+      DBT_TARGET_PATH: /tmp/olist-dbt-target
+      DBT_LOG_PATH: /opt/airflow/logs/dbt
+    volumes:
+      - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
+      - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
+      - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
+      - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+      - type: bind
+        source: ../../transformation/olist_analytics
+        target: /opt/dbt/project
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${GCP_ADC_PATH}
+        target: /opt/airflow/secrets/google-adc.json
+        read_only: true
+        bind:
+          create_host_path: false    
     restart: always
     depends_on:
       <<: *airflow-common-depends-on

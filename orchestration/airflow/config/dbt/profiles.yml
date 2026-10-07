@@ -1,0 +1,14 @@
+olist_analytics:
+  target: dev
+
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: olist-analytics-508208
+      dataset: olist_dbt_dev
+      location: asia-southeast1
+      threads: 2
+      timeout_seconds: 300
+      priority: interactive
+      maximum_bytes_billed: 1000000000
