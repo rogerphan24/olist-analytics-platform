@@ -194,8 +194,8 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
       - type: bind
-        source: ../../transformation/olist_analytics
-        target: /opt/dbt/project
+        source: ../../ingestion
+        target: /opt/olist/ingestion
         read_only: true
         bind:
           create_host_path: false
