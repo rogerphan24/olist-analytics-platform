@@ -8,7 +8,35 @@ from airflow.sdk import dag, task
 
 PYTHON = "/opt/airflow/dbt-venv/bin/python"
 INGESTION = "/opt/olist/ingestion"
+DBT = "/opt/airflow/dbt-venv/bin/dbt"
+DBT_PROJECT = "/opt/dbt/project"
+DBT_PROFILES = "/opt/airflow/config/dbt"
 
+MARTS = [
+    "mart_daily_sales",
+    "mart_product_sales_daily",
+    "mart_seller_sales_daily",
+    "mart_delivery_daily",
+    "mart_payments_daily",
+    "mart_order_quality_daily",
+    "mart_reviews_daily",
+    "mart_customer_daily",
+    "mart_customer_periods",
+    "mart_category_sales_daily",
+]
+
+def run_dbt(arguments):
+    subprocess.run(
+        [
+            DBT,
+            *arguments,
+            "--project-dir", DBT_PROJECT,
+            "--profiles-dir", DBT_PROFILES,
+            "--target", "dev",
+        ],
+        cwd=DBT_PROJECT,
+        check=True,
+    )
 
 @dag(
     dag_id="olist_ingestion_candidates",
@@ -66,9 +94,45 @@ def olist_ingestion_candidates():
             flush=True,
         )
 
+
+    @task
+    def check_dbt_connection():
+        run_dbt(["debug"])
+
+    @task(execution_timeout=timedelta(minutes=60))
+    def build_warehouse():
+        run_dbt([
+            "build",
+            "--select",
+            "path:models/staging",
+            "path:models/marts/dimensions",
+            "path:models/marts/facts",
+            *MARTS,
+            "--indirect-selection", "buildable",
+        ])
+    
+    @task
+    def restore_and_verify_constraints():
+        subprocess.run(
+            [
+                PYTHON,
+                "-u",
+                f"{INGESTION}/restore_constraints.py"
+            ],
+            check=True,
+        )
+
     run_id = create_run_id()
     loaded_run_id = load_candidates(run_id)
-    validate_candidates(loaded_run_id)
+    validated = validate_candidates(loaded_run_id)
+
+    (
+        validated
+        >> check_dbt_connection()
+        >> build_warehouse()
+        >> restore_and_verify_constraints()
+    )
+
 
 
 olist_ingestion_candidates()
