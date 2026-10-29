@@ -35,7 +35,7 @@ def olist_ingestion_candidates():
         print(f"Candidate run ID: {run_id}", flush=True)
         return run_id
 
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=1))
     def load_candidates(candidate_run_id: str):
         subprocess.run(
             [
@@ -49,7 +49,7 @@ def olist_ingestion_candidates():
         )
         return candidate_run_id
 
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=1))
     def validate_candidates(candidate_run_id: str):
         subprocess.run(
             [

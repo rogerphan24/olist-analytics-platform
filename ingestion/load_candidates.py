@@ -3,6 +3,7 @@ import json
 import tempfile
 import argparse
 import re
+import hashlib
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +12,8 @@ from uuid import uuid4
 from google.cloud import bigquery, storage
 
 from preflight import main as run_preflight
+
+from google.api_core.exceptions import Conflict, NotFound
 
 
 CONFIG_DIR = Path(__file__).resolve().parent
@@ -69,6 +72,82 @@ def main():
             raise ValueError(f"Missing or empty source: {source['file']}")
         sources.append((source, blob))
 
+        # Identify the complete source/configuration snapshot for this run.
+    snapshot = {
+        "manifest": manifest,
+        "schemas": schemas,
+        "loader_contract": "csv-string-v1",
+        "source_versions": sorted(
+            [
+                {
+                    "table": source["table"],
+                    "object": blob.name,
+                    "generation": str(blob.generation),
+                    "size": blob.size,
+                }
+                for source, blob in sources
+            ],
+            key=lambda item: item["table"],
+        ),
+    }
+
+    # BigQuery label values have a maximum length of 63 characters.
+    snapshot_id = hashlib.sha256(
+        json.dumps(
+            snapshot,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:63]
+
+    print(f"SOURCE SNAPSHOT: {snapshot_id}", flush=True)
+    
+    # Check the entire run before submitting any new load jobs.
+    existing_jobs = {}
+
+    for source, blob in sources:
+        table_name = source["table"]
+        job_id = f"olist_candidate_{table_name}_{run_id}"
+        destination = (
+            f"{project}.{candidate_dataset}.{table_name}__{run_id}"
+        )
+
+        try:
+            previous_job = bq.get_job(job_id, location=location)
+        except NotFound:
+            # A table without its matching job is not safe to reuse.
+            try:
+                bq.get_table(destination)
+            except NotFound:
+                continue
+
+            raise ValueError(
+                f"{table_name}: candidate table exists without its "
+                "expected load job. Stop and investigate."
+            )
+
+        if not isinstance(previous_job, bigquery.LoadJob):
+            raise ValueError(f"{table_name}: expected a load job.")
+
+        if (
+            (previous_job.labels or {}).get("source_snapshot")
+            != snapshot_id
+        ):
+            raise ValueError(
+                f"{table_name}: existing job has a different or missing "
+                "source snapshot. Do not reuse this run ID."
+            )
+
+        expected_destination = bigquery.TableReference.from_string(
+            destination
+        )
+        if previous_job.destination != expected_destination:
+            raise ValueError(f"{table_name}: job destination mismatch.")
+
+        # Wait for an existing job; a failed job stops this run.
+        previous_job.result()
+        existing_jobs[table_name] = previous_job
+
     results = []
 
     with tempfile.TemporaryDirectory(prefix="olist-candidate-") as temp_dir:
@@ -125,18 +204,63 @@ def main():
                     "pipeline": "olist_ingestion",
                     "stage": "candidate",
                     "run_id": run_id.lower(),
+                    "source_snapshot":  snapshot_id,
+                    "source_generation": str(blob.generation),
+                    "source_rows": str(row_count), 
                 },
             )
 
-            with local_file.open("rb") as handle:
-                job = bq.load_table_from_file(
-                    handle,
-                    destination,
-                    location=location,
-                    job_config=config,
-                    job_id=f"olist_candidate_{table_name}_{run_id}",
+            job_id = f"olist_candidate_{table_name}_{run_id}"
+            job = existing_jobs.get(table_name)
+            reused = job is not None
+
+            if job is None:
+                with local_file.open("rb") as handle:
+                    try:
+                        job = bq.load_table_from_file(
+                            handle,
+                            destination,
+                            location=location,
+                            job_config=config,
+                            job_id=job_id,
+                        )
+                    except Conflict:
+                        # Another attempt may already have submitted this ID.
+                        job = bq.get_job(job_id, location=location)
+                        reused = True
+
+            if not isinstance(job, bigquery.LoadJob):
+                raise ValueError(f"{table_name}: expected a load job.")
+
+            expected_destination = bigquery.TableReference.from_string(
+                destination
+            )
+            if job.destination != expected_destination:
+                raise ValueError(f"{table_name}: job destination mismatch.")
+
+            for label, expected_value in config.labels.items():
+                if (job.labels or {}).get(label) != expected_value:
+                    raise ValueError(
+                        f"{table_name}: load job label mismatch: {label}"
+                    )
+
+            if job.write_disposition != "WRITE_EMPTY":
+                raise ValueError(
+                    f"{table_name}: unexpected write disposition."
                 )
-                job.result()
+
+            job.result()
+
+            if job.output_rows != row_count:
+                raise ValueError(
+                    f"{table_name}: load job row count differs from source."
+                )
+
+            print(
+                f"{'REUSED' if reused else 'LOADED'} {table_name}: "
+                f"job={job.job_id}",
+                flush=True,
+            )
 
             table = bq.get_table(destination)
             expected_schema = [
